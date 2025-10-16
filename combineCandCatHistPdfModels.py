@@ -1073,24 +1073,21 @@ class CombinePDFs:
                 self.wsPdf.Import(f_bin_var)
 
             for const_C1_RD in self.const_C1_RD:
-                getattr(self.wsPdf, "import")(const_C1_RD, ROOT.RooFit.RecycleConflictNodes())
+                self.wsPdf.Import(const_C1_RD)
             for const_C1_RDst in self.const_C1_RDst:
-                getattr(self.wsPdf, "import")(const_C1_RDst, ROOT.RooFit.RecycleConflictNodes())
+                self.wsPdf.Import(const_C1_RDst)
             for const_C2 in self.const_C2:
-                getattr(self.wsPdf, "import")(const_C2, ROOT.RooFit.RecycleConflictNodes())
+                self.wsPdf.Import(const_C2)
 
             for i, model in self.models.items():
-                #self.wsPdf.Import(model)
-                getattr(self.wsPdf, "import")(model, ROOT.RooFit.RecycleConflictNodes())
+                self.wsPdf.Import(model)
             for _candCatName, _numVarDict in self.numVarDict.items():
                 for i, numVarDict in _numVarDict.items():
-                    #self.wsPdf.Import(numVarDict)
-                    getattr(self.wsPdf, "import")(numVarDict, ROOT.RooFit.RecycleConflictNodes())
+                    self.wsPdf.Import(numVarDict)
 
             for _candCatName, _unfold_numVarDict in self.unfold_numVarDict.items():
                 for i, unfold_numVarDict in _unfold_numVarDict.items():
-                    #self.wsPdf.Import(unfold_numVarDict)
-                    getattr(self.wsPdf, "import")(unfold_numVarDict, ROOT.RooFit.RecycleConflictNodes())
+                    self.wsPdf.Import(unfold_numVarDict)
             
                     
             self.wsPdf.Print()
