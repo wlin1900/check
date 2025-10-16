@@ -571,6 +571,8 @@ class CombinePDFs:
                 if meas_bin_index >= max(self.unfold_numVarDict[_candCatName].keys()):
                     continue
                 _argList = ROOT.RooArgList()
+                # Keep strong Python references to intermediate RooFit nodes
+                # to avoid PyROOT deleting them before later use/printing
                 var_parts = []
 
                 _name = self.unfold_numVarDict[_candCatName][meas_bin_index].GetName()
@@ -634,6 +636,10 @@ class CombinePDFs:
                     _argList
                 )
                 self.numVarDict[_candCatName][meas_bin_index] = _totalVar
+
+                # Persist intermediate nodes to prevent GC and dangling pointers
+                self._temp_var_parts.extend(var_parts)
+                self._temp_var_parts1.append(T_j)
 
                 if _candCatName == "NormDstlv":
                     print("Test1---------------------->")
@@ -863,6 +869,8 @@ class CombinePDFs:
                     continue
 
                 _argList = ROOT.RooArgList()
+                # Keep strong Python references to intermediate RooFit nodes
+                # to avoid PyROOT deleting them before later use/printing
                 var_parts = []
 
                 _name = self.unfold_numVarDict[_candCatName][meas_bin_index].GetName()
@@ -878,7 +886,7 @@ class CombinePDFs:
                     _N_truth_i = self.unfold_numVarDict[_candCatName][truth_bin_index]
 
                     _name_part = _N_truth_i.GetName().replace(
-                        f"unfold_numVar_{truth_bin_index}",
+                        f"unfold_numVar_bin{truth_bin_index}",
                         f"numVar_part_bin{meas_bin_index}_bin{truth_bin_index}"
                     )
 
@@ -925,6 +933,10 @@ class CombinePDFs:
                     _argList
                 )
                 self.numVarDict[_candCatName][meas_bin_index] = _totalVar
+
+                # Persist intermediate nodes to prevent GC and dangling pointers
+                self._temp_var_parts.extend(var_parts)
+                self._temp_var_parts1.append(T_j)
 
         return
 
