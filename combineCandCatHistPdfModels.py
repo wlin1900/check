@@ -439,6 +439,16 @@ class CombinePDFs:
         _pdfs = self.pdfDict.get(_candCatName)  # measured bins dict
         self.unfold_numVarDict[_candCatName] = {}
 
+        _name = _pdfs[1].GetName()
+        match = re.search(r"(Xc.*)$", _name)
+        unfold_numVar_NormDstlv_bin0 = 2223.75
+        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
+                f"unfold_numVar_bin0_MC_NormDstlv_{match.group(1)}",
+                "fixed MC template yield for truth first bin",
+                unfold_numVar_NormDstlv_bin0
+            )
+
+
         for i, _pdf in _pdfs.items():
 
             truth_bin_index = i + 1
@@ -471,17 +481,12 @@ class CombinePDFs:
                     _strFormula,
                     _argList,
                 )
+
+            #print(f"Check--------------------->{_candCatName}---->{truth_bin_index}")
+            #sprint(_numVar)
             self.unfold_numVarDict[_candCatName][truth_bin_index] = _numVar
             
-        _name = self.unfold_numVarDict[_candCatName][1].GetName()
-        match = re.search(r"(Xc.*)$", _name)
-        unfold_numVar_NormDstlv_bin0 = 2223.75
-        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
-                f"unfold_numVar_bin0_MC_NormDstlv_{match.group(1)}",
-                "fixed MC template yield for truth first bin",
-                unfold_numVar_NormDstlv_bin0
-            )
-
+        
         _candCatName = "NormDlv"
         _name = "brVar_Norm_BDlv"
         _title = "#it{Br}(#it{#bar{B}#rightarrow#it{D}l{#nu}})"
@@ -498,6 +503,15 @@ class CombinePDFs:
 
         _pdfs = self.pdfDict.get(_candCatName)
         self.unfold_numVarDict[_candCatName] = {}
+
+        _name = _pdfs[1].GetName()
+        match = re.search(r"(Xc.*)$", _name)
+        unfold_numVar_NormDlv_bin0 = 113.08
+        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
+                f"unfold_numVar_bin0_MC_NormDlv_{match.group(1)}",
+                "fixed MC template yield for truth first bin",
+                unfold_numVar_NormDlv_bin0
+            )
 
         for i, _pdf in _pdfs.items():
             truth_bin_index = i + 1  # measured bin i ↔ truth bin i+1
@@ -532,15 +546,6 @@ class CombinePDFs:
                 )
             self.unfold_numVarDict[_candCatName][truth_bin_index] = _numVar
 
-        _name = self.unfold_numVarDict[_candCatName][1].GetName()
-        match = re.search(r"(Xc.*)$", _name)
-        unfold_numVar_NormDlv_bin0 = 113.08
-        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
-                f"unfold_numVar_bin0_MC_NormDlv_{match.group(1)}",
-                "fixed MC template yield for truth first bin",
-                unfold_numVar_NormDlv_bin0
-            )
-
         return
 
     # Step 2. N(B->D(*)lnv)_{measured}
@@ -549,8 +554,8 @@ class CombinePDFs:
         with open(R_Migrate, 'r') as f:
             R_Migrate = json.load(f)
 
-        self.s_bin0 = ROOT.RooRealVar(
-            "s_bin0",
+        self.s_bin0_norm = ROOT.RooRealVar(
+            "s_bin0_norm",
             "scale factor for truth bin0 template",
             1.0,
             0.5,
@@ -563,7 +568,7 @@ class CombinePDFs:
 
             for meas_bin_index in self.unfold_numVarDict[_candCatName].keys():
 
-                if meas_bin_index == 3:
+                if meas_bin_index >= max(self.unfold_numVarDict[_candCatName].keys()):
                     continue
                 _argList = ROOT.RooArgList()
                 var_parts = []
@@ -581,8 +586,8 @@ class CombinePDFs:
                     _N_truth_i = self.unfold_numVarDict[_candCatName][truth_bin_index]
 
                     _name_part = _N_truth_i.GetName().replace(
-                        f"unfold_numVar_{truth_bin_index}",
-                        f"numVar_part_meas{meas_bin_index}_truth{truth_bin_index}"
+                        f"unfold_numVar_bin{truth_bin_index}",
+                        f"numVar_part_bin{meas_bin_index}_bin{truth_bin_index}"
                     )
 
                     _var_part = ROOT.RooFormulaVar(
@@ -591,7 +596,6 @@ class CombinePDFs:
                         f"@0 * {float(Migrate_factor)}",
                         ROOT.RooArgList(_N_truth_i),
                     )
-
                     var_parts.append(_var_part)
                     _argList.add(_var_part)
 
@@ -611,7 +615,7 @@ class CombinePDFs:
                         f"sT_bin0_to_meas{meas_bin_index}_{_candCatName}",
                         f"s x T_j for measured bin {meas_bin_index}",
                         "@0*@1",
-                        ROOT.RooArgList(self.s_bin0, T_j)
+                        ROOT.RooArgList(self.s_bin0_norm, T_j)
                     )
 
                 var_parts.append(sT_var)
@@ -629,11 +633,11 @@ class CombinePDFs:
                     sum_expr,
                     _argList
                 )
-
-                print(f"Test---------------------------------->{_candCatName}---->{meas_bin_index}")
-                print(_totalVar)
-
                 self.numVarDict[_candCatName][meas_bin_index] = _totalVar
+
+                if _candCatName == "NormDstlv":
+                    print("Test1---------------------->")
+                    print(self.numVarDict[_candCatName][meas_bin_index])
 
         return
 
@@ -765,6 +769,12 @@ class CombinePDFs:
 
         _name = self.unfold_numVarDict["NormDstlv"][1].GetName()
         match = re.search(r"(Xc.*)$", _name)
+        unfold_numVar_SignalDstTv_bin0 = 6.52
+        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
+                f"unfold_numVar_bin0_MC_SignalDstTv_{match.group(1)}",
+                "fixed MC template yield for truth first bin",
+                unfold_numVar_SignalDstTv_bin0
+            )
 
         for i in self.unfold_numVarDict["NormDstlv"].keys():
             if i == 0:  
@@ -790,16 +800,18 @@ class CombinePDFs:
             )
             self.unfold_numVarDict[_candCatName][i] = _numVar
 
-        unfold_numVar_SignalDstTv_bin0 = 6.52
-        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
-                f"unfold_numVar_bin0_MC_SignalDstTv_{match.group(1)}",
-                "fixed MC template yield for truth first bin",
-                unfold_numVar_SignalDstTv_bin0
-            )
-
 
         _candCatName = "SignalDTv"
         self.unfold_numVarDict[_candCatName] = {}
+
+        _name = self.unfold_numVarDict["NormDlv"][1].GetName()
+        match = re.search(r"(Xc.*)$", _name)
+        unfold_numVar_SignalDTv_bin0 = 0
+        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
+                f"unfold_numVar_bin0_MC_SignalDTv_{match.group(1)}",
+                "fixed MC template yield for truth first bin",
+                unfold_numVar_SignalDTv_bin0
+            )
 
         for i in self.unfold_numVarDict["NormDlv"].keys():
             if i == 0:
@@ -825,13 +837,6 @@ class CombinePDFs:
             )
             self.unfold_numVarDict[_candCatName][i] = _numVar
 
-        unfold_numVar_SignalDTv_bin0 = 0
-        self.unfold_numVarDict[_candCatName][0] = ROOT.RooConstVar(
-                f"unfold_numVar_bin0_MC_SignalDTv_{match.group(1)}",
-                "fixed MC template yield for truth first bin",
-                unfold_numVar_SignalDTv_bin0
-            )
-
         return
 
     # Step 2. N(B->D(*)Tnv)_{measured}
@@ -841,8 +846,8 @@ class CombinePDFs:
             R_Migrate = json.load(f)
 
         # bin0 缩放参数
-        self.s_bin0 = ROOT.RooRealVar(
-            "s_bin0_signal",
+        self.s_bin0_sig = ROOT.RooRealVar(
+            "s_bin0_sig",
             "scale factor for truth bin0 template",
             1.0,
             0.5,
@@ -874,7 +879,7 @@ class CombinePDFs:
 
                     _name_part = _N_truth_i.GetName().replace(
                         f"unfold_numVar_{truth_bin_index}",
-                        f"numVar_part_meas{meas_bin_index}_truth{truth_bin_index}"
+                        f"numVar_part_bin{meas_bin_index}_bin{truth_bin_index}"
                     )
 
                     _var_part = ROOT.RooFormulaVar(
@@ -902,7 +907,7 @@ class CombinePDFs:
                         f"sT_bin0_to_meas{meas_bin_index}_{_candCatName}",
                         f"s x T_j for measured bin {meas_bin_index}",
                         "@0*@1",
-                        ROOT.RooArgList(self.s_bin0, T_j)
+                        ROOT.RooArgList(self.s_bin0_sig, T_j)
                     )
 
                 var_parts.append(sT_var)
@@ -919,9 +924,6 @@ class CombinePDFs:
                     sum_expr,
                     _argList
                 )
-                print(f"Test---------------------------------->{_candCatName}---->{meas_bin_index}")
-                print(_totalVar)
-
                 self.numVarDict[_candCatName][meas_bin_index] = _totalVar
 
         return
@@ -1063,6 +1065,8 @@ class CombinePDFs:
             self.wsPdf.Import(self.NBBbarVar)
             self.wsPdf.Import(self.brVarNorm_Dst)
             self.wsPdf.Import(self.brVarNorm_D)
+            self.wsPdf.Import(self.s_bin0_norm)
+            self.wsPdf.Import(self.s_bin0_sig)
             for f_bin_var in self.f_bin_NormDlv_b0.values():
                 self.wsPdf.Import(f_bin_var)
             for f_bin_var in self.f_bin_NormDlv_bp.values():
@@ -1073,21 +1077,27 @@ class CombinePDFs:
                 self.wsPdf.Import(f_bin_var)
 
             for const_C1_RD in self.const_C1_RD:
-                self.wsPdf.Import(const_C1_RD)
+                getattr(self.wsPdf, "import")(const_C1_RD, ROOT.RooFit.RecycleConflictNodes())
             for const_C1_RDst in self.const_C1_RDst:
-                self.wsPdf.Import(const_C1_RDst)
+                getattr(self.wsPdf, "import")(const_C1_RDst, ROOT.RooFit.RecycleConflictNodes())
             for const_C2 in self.const_C2:
-                self.wsPdf.Import(const_C2)
+                getattr(self.wsPdf, "import")(const_C2, ROOT.RooFit.RecycleConflictNodes())
 
-            for i, model in self.models.items():
-                self.wsPdf.Import(model)
+            #for i, model in self.models.items():
+                #self.wsPdf.Import(model)
+                #getattr(self.wsPdf, "import")(model, ROOT.RooFit.RecycleConflictNodes())
             for _candCatName, _numVarDict in self.numVarDict.items():
                 for i, numVarDict in _numVarDict.items():
-                    self.wsPdf.Import(numVarDict)
+                    if _candCatName == "NormDstlv":
+                        print("Test2---------------------->")
+                        print(self.numVarDict[_candCatName][i])
+                    #self.wsPdf.Import(numVarDict)
+            #        getattr(self.wsPdf, "import")(numVarDict, ROOT.RooFit.RecycleConflictNodes())
 
-            for _candCatName, _unfold_numVarDict in self.unfold_numVarDict.items():
-                for i, unfold_numVarDict in _unfold_numVarDict.items():
-                    self.wsPdf.Import(unfold_numVarDict)
+            #for _candCatName, _unfold_numVarDict in self.unfold_numVarDict.items():
+            #    for i, unfold_numVarDict in _unfold_numVarDict.items():
+                    #self.wsPdf.Import(unfold_numVarDict)
+            #        getattr(self.wsPdf, "import")(unfold_numVarDict, ROOT.RooFit.RecycleConflictNodes())
             
                     
             self.wsPdf.Print()
